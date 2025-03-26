@@ -10,6 +10,7 @@ import re
 import fcntl
 import shutil
 import glob
+import traceback
 
 # Set up logging
 logging.basicConfig(
@@ -184,6 +185,7 @@ def download_creator(creator, archive_file, cookies_file, download_dir):
     
     logger.info(f"Processing creator: {creator['name']} (looking back {days_back} days)")
     
+    # Add debug flag for more verbose error reporting
     cmd = [
         'yt-dlp',
         '--cookies', cookies_file,
@@ -198,16 +200,44 @@ def download_creator(creator, archive_file, cookies_file, download_dir):
         '--newline',                # Each progress line on new line for better log readability
         '--no-progress-template',   # Don't use custom progress template to avoid issues
         '--force-progress',         # Force progress display even when not on a TTY
+        '--verbose',                # Add verbose output for better error diagnostics
         creator_url
     ]
     
     # Add any custom yt-dlp arguments if specified
     if 'ytdlp_args' in creator:
         logger.info(f"Using custom arguments for {creator['name']}: {creator['ytdlp_args']}")
-        cmd.extend(creator['ytdlp_args'].split())
+        ytdlp_args = creator['ytdlp_args'].split()
+        
+        # Don't duplicate verbose flag if it's already specified in custom args
+        if '--verbose' in ytdlp_args and '--verbose' in cmd:
+            cmd.remove('--verbose')
+            
+        cmd.extend(ytdlp_args)
     
     logger.info(f"Starting download for {creator['name']}")
     logger.info(f"Command: {' '.join(cmd)}")
+    
+    # Create a log file specifically for this creator's errors
+    error_log_path = os.path.join(download_dir, 'logs', f"{creator['name']}_errors.log")
+    os.makedirs(os.path.dirname(error_log_path), exist_ok=True)
+    
+    # Check validity of cookies file
+    if not os.path.isfile(cookies_file) or os.path.getsize(cookies_file) == 0:
+        logger.error(f"Cookies file is missing or empty: {cookies_file}")
+        with open(error_log_path, 'a') as f:
+            f.write(f"{datetime.datetime.now()} - ERROR: Cookies file is missing or empty\n")
+        return False
+    
+    # Check archive file access
+    try:
+        with open(archive_file, 'a') as f:
+            pass  # Just testing we can write to it
+    except Exception as e:
+        logger.error(f"Cannot write to archive file: {str(e)}")
+        with open(error_log_path, 'a') as f:
+            f.write(f"{datetime.datetime.now()} - ERROR: Cannot write to archive file: {str(e)}\n")
+        return False
     
     # Use Popen instead of run to capture output in real-time
     process = subprocess.Popen(
@@ -226,6 +256,7 @@ def download_creator(creator, archive_file, cookies_file, download_dir):
     progress_pattern = re.compile(r'\[download\].*?(\d+\.\d)%')
     last_update_time = time.time()
     buffer = ""
+    error_lines = []
     
     # Continue until process exits
     while process.poll() is None:
@@ -242,8 +273,15 @@ def download_creator(creator, archive_file, cookies_file, download_dir):
                     if not line:
                         continue
                     
+                    # Capture error lines for detailed reporting
+                    if 'ERROR:' in line or 'error:' in line.lower() or 'warning:' in line.lower():
+                        error_lines.append(line)
+                        logger.error(f"{creator['name']}: {line}")
+                        with open(error_log_path, 'a') as f:
+                            f.write(f"{datetime.datetime.now()} - {line}\n")
+                    
                     # Always log download progress lines but throttle percentage updates
-                    if line.startswith('[download]'):
+                    elif line.startswith('[download]'):
                         current_time = time.time()
                         # Log important download messages immediately
                         if 'Destination:' in line or 'has already been downloaded' in line or 'Resuming download' in line:
@@ -267,22 +305,62 @@ def download_creator(creator, archive_file, cookies_file, download_dir):
         except (IOError, BlockingIOError):
             # No data available right now
             pass
+        except Exception as e:
+            # Log other exceptions during output processing
+            logger.error(f"Error processing output for {creator['name']}: {str(e)}")
+            logger.error(traceback.format_exc())
         
         time.sleep(0.1)  # Small sleep to prevent CPU hogging
     
     # Process any remaining output
-    remaining = process.stdout.read()
-    if remaining:
-        for line in remaining.splitlines():
-            line = line.strip()
-            if line:
-                logger.info(f"{creator['name']}: {line}")
+    try:
+        remaining = process.stdout.read()
+        if remaining:
+            for line in remaining.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                    
+                # Capture error lines for detailed reporting
+                if 'ERROR:' in line or 'error:' in line.lower() or 'warning:' in line.lower():
+                    error_lines.append(line)
+                    logger.error(f"{creator['name']}: {line}")
+                    with open(error_log_path, 'a') as f:
+                        f.write(f"{datetime.datetime.now()} - {line}\n")
+                else:
+                    logger.info(f"{creator['name']}: {line}")
+    except Exception as e:
+        logger.error(f"Error processing final output for {creator['name']}: {str(e)}")
     
     process.stdout.close()
     return_code = process.wait()
     
     if return_code != 0:
+        # Comprehensive error reporting
+        error_summary = "\n".join(error_lines[-10:]) if error_lines else "No specific error messages captured"
         logger.error(f"Error downloading from {creator['name']} (return code: {return_code})")
+        logger.error(f"Error details for {creator['name']}:\n{error_summary}")
+        
+        # Check specific error conditions
+        if any("HTTP Error 401" in line for line in error_lines):
+            logger.error(f"Authentication failed for {creator['name']}. Please check your cookies.txt file.")
+        elif any("HTTP Error 403" in line for line in error_lines):
+            logger.error(f"Access forbidden for {creator['name']}. You may not have access to this content or your cookies expired.")
+        elif any("HTTP Error 404" in line for line in error_lines):
+            logger.error(f"Content not found for {creator['name']}. The URL might be incorrect or content removed.")
+        elif any("Unable to extract" in line for line in error_lines):
+            logger.error(f"Unable to extract content from {creator['name']}. Patreon layout might have changed.")
+        
+        # Write a detailed error report
+        with open(error_log_path, 'a') as f:
+            f.write(f"\n===== ERROR SUMMARY =====\n")
+            f.write(f"Time: {datetime.datetime.now()}\n")
+            f.write(f"Return code: {return_code}\n")
+            f.write(f"Command: {' '.join(cmd)}\n")
+            f.write(f"Error details:\n")
+            for line in error_lines:
+                f.write(f"  {line}\n")
+        
         return False
     else:
         logger.info(f"Successfully completed processing {creator['name']}")
