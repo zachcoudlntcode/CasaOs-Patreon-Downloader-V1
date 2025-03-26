@@ -234,11 +234,13 @@ def attempt_alternative_download(creator, cookies_file, download_dir):
     
     try:
         logger.info(f"Running diagnostic test for {creator_name}")
+        # Add timeout to prevent freezing
         diagnostic_output = subprocess.run(
             alternative_cmd, 
             capture_output=True, 
             text=True, 
-            check=False
+            check=False,
+            timeout=60  # 60 second timeout to prevent hanging
         )
         
         # Log the output for debugging
@@ -256,6 +258,9 @@ def attempt_alternative_download(creator, cookies_file, download_dir):
             logger.warning(f"No video formats detected for {creator_name}. Posts may not contain videos.")
             return False
             
+    except subprocess.TimeoutExpired:
+        logger.error(f"Diagnostic timed out after 60 seconds for {creator_name}")
+        return False
     except Exception as e:
         logger.error(f"Error during alternative download attempt: {str(e)}")
         return False
@@ -446,7 +451,12 @@ def download_creator(creator, archive_file, cookies_file, download_dir):
     process.stdout.close()
     return_code = process.wait()
     
-    if return_code != 0:
+    # Check if all errors are just "No supported media" errors, which are normal for text-only posts
+    media_not_found_errors = [line for line in error_lines if "No supported media found in this post" in line]
+    critical_errors = [line for line in error_lines if "No supported media found in this post" not in line]
+    
+    # Only consider it a failure if there are critical errors beyond just "no media" messages
+    if return_code != 0 and critical_errors:
         # Comprehensive error reporting
         error_summary = "\n".join(error_lines[-10:]) if error_lines else "No specific error messages captured"
         logger.error(f"Error downloading from {creator['name']} (return code: {return_code})")
@@ -477,6 +487,11 @@ def download_creator(creator, archive_file, cookies_file, download_dir):
         attempt_alternative_download(creator, cookies_file, download_dir)
         
         return False
+    elif media_not_found_errors and return_code != 0:
+        # We only had "No supported media" errors, which is normal for text-only posts
+        logger.info(f"No downloadable media found in {len(media_not_found_errors)} posts for {creator['name']}")
+        logger.info(f"This is normal for text-only posts without attachments")
+        return True
     else:
         logger.info(f"Successfully completed processing {creator['name']}")
         return True
