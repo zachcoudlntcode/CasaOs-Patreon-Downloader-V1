@@ -174,6 +174,67 @@ def clean_up_files(download_dir, creator_name):
                     logger.debug(f"Deleting extra file: {os.path.basename(file_to_delete)}")
                     os.remove(file_to_delete)
 
+def verify_downloads(creator_dir):
+    """Verify that video files were actually downloaded"""
+    video_files = []
+    for ext in ['.mp4', '.mkv', '.webm', '.mov', '.avi']:
+        video_files.extend(glob.glob(os.path.join(creator_dir, f'*{ext}')))
+    
+    if not video_files:
+        logger.warning(f"No video files found in {creator_dir}, only thumbnails/images may have been downloaded")
+        return False
+    
+    logger.info(f"Found {len(video_files)} video files in {creator_dir}")
+    return True
+
+def attempt_alternative_download(creator, cookies_file, download_dir):
+    """Try alternative download methods if standard method fails"""
+    creator_name = creator['name']
+    creator_dir = os.path.join(download_dir, creator_name)
+    creator_url = f"https://www.patreon.com/{creator_name}/posts"
+    output_template = os.path.join(creator_dir, 'alt_download_%(title)s.%(ext)s')
+    
+    logger.info(f"Attempting alternative download method for {creator_name}")
+    
+    # Create a test file with specific Patreon post URL instead of the creator's page
+    alternative_cmd = [
+        'yt-dlp',
+        '--cookies', cookies_file,
+        '-o', output_template,
+        '--verbose',
+        '--format', 'best',
+        '--list-formats',  # Just list formats without downloading
+        creator_url
+    ]
+    
+    try:
+        logger.info(f"Running diagnostic test for {creator_name}")
+        diagnostic_output = subprocess.run(
+            alternative_cmd, 
+            capture_output=True, 
+            text=True, 
+            check=False
+        )
+        
+        # Log the output for debugging
+        diagnostic_log = os.path.join(download_dir, 'logs', f"{creator_name}_diagnostic.log")
+        with open(diagnostic_log, 'w') as f:
+            f.write(f"STDOUT:\n{diagnostic_output.stdout}\n\nSTDERR:\n{diagnostic_output.stderr}")
+        
+        logger.info(f"Diagnostic information saved to {diagnostic_log}")
+        
+        # Check if we can see any video formats in the output
+        if "video only" in diagnostic_output.stdout or "video+audio" in diagnostic_output.stdout:
+            logger.info(f"Video formats detected for {creator_name}, but download failed. Check diagnostic log.")
+            return True
+        else:
+            logger.warning(f"No video formats detected for {creator_name}. Posts may not contain videos.")
+            return False
+            
+    except Exception as e:
+        logger.error(f"Error during alternative download attempt: {str(e)}")
+        return False
+
 def download_creator(creator, archive_file, cookies_file, download_dir):
     """Download content from a specific creator"""
     
@@ -185,7 +246,7 @@ def download_creator(creator, archive_file, cookies_file, download_dir):
     
     logger.info(f"Processing creator: {creator['name']} (looking back {days_back} days)")
     
-    # Add debug flag for more verbose error reporting
+    # Modify yt-dlp command to better handle Patreon videos
     cmd = [
         'yt-dlp',
         '--cookies', cookies_file,
@@ -200,6 +261,14 @@ def download_creator(creator, archive_file, cookies_file, download_dir):
         '--newline',                # Each progress line on new line for better log readability
         '--force-progress',         # Force progress display even when not on a TTY
         '--verbose',                # Add verbose output for better error diagnostics
+        '--extract-audio', 'False', # Don't extract audio only
+        '--format', 'best',         # Get best quality available
+        '--merge-output-format', 'mp4', # Try to merge formats to mp4
+        '--add-header', 'Referer:https://www.patreon.com/', # Add referer header for authentication
+        '--ignore-errors',          # Continue on download errors
+        '--geo-bypass',             # Try to bypass geo-restrictions
+        '--no-overwrites',          # Don't overwrite files
+        '--no-playlist',            # Treat as single post, not playlist
         creator_url
     ]
     
@@ -360,6 +429,10 @@ def download_creator(creator, archive_file, cookies_file, download_dir):
             for line in error_lines:
                 f.write(f"  {line}\n")
         
+        # Add diagnostic attempt
+        logger.info(f"Running diagnostics for {creator['name']} to determine cause of failure")
+        attempt_alternative_download(creator, cookies_file, download_dir)
+        
         return False
     else:
         logger.info(f"Successfully completed processing {creator['name']}")
@@ -391,10 +464,18 @@ def main():
                 logger.info(f"Starting download process for creator: {creator['name']}")
                 download_success = download_creator(creator, archive_file, cookies_file, download_dir)
                 
-                # Only clean up files if downloads were successful
+                # Verify that video files were downloaded, not just thumbnails
                 if download_success:
-                    logger.info(f"Cleaning up files for creator: {creator['name']}")
-                    clean_up_files(download_dir, creator['name'])
+                    video_files_found = verify_downloads(creator_dir)
+                    if not video_files_found:
+                        logger.warning(f"Only non-video files were downloaded for {creator['name']}. This might indicate:")
+                        logger.warning("1. The Patreon posts don't contain videos")
+                        logger.warning("2. Authentication/cookies issues preventing access to video content")
+                        logger.warning("3. Patreon may have changed their site structure")
+                        logger.warning("Try manually visiting the creator's page to verify content type")
+                    else:
+                        logger.info(f"Cleaning up files for creator: {creator['name']}")
+                        clean_up_files(download_dir, creator['name'])
                 
                 # Add a small delay between creators to avoid rate limiting
                 delay = 10
