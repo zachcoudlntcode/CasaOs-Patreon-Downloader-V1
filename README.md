@@ -60,6 +60,10 @@ docker-compose up -d
 - A scheduled cron job will check for new content every 6 hours
 - Downloaded content is saved to the `downloads` directory, organized by creator name
 - Already downloaded files are tracked in an archive to avoid duplicates
+- Video files are automatically cleaned up:
+  - Filenames are simplified (IDs are removed)
+  - Metadata is added from descriptions
+  - Extra files (thumbnails, descriptions, etc.) are removed
 
 ### 4. Logs
 
