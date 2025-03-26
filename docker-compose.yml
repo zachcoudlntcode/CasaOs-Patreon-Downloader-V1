@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  patreon-downloader:
+    build: .
+    container_name: patreon-downloader
+    volumes:
+      - ./downloads:/downloads
+      - ./config:/config
+    environment:
+      - TZ=America/New_York
+      - PYTHONUNBUFFERED=1  # Ensure Python output is unbuffered for better logging
+      - PUID=1000           # User ID for permissions
+      - PGID=1000           # Group ID for permissions
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

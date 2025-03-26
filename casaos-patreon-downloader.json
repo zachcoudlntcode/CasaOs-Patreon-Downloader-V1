@@ -1,0 +1,50 @@
+{
+  "name": "Patreon Downloader",
+  "icon": "https://www.patreon.com/favicon.ico",
+  "tagline": "Automated content downloader for Patreon creators",
+  "overview": "Docker container that automatically downloads content from Patreon creators without requiring user interaction after setup.",
+  "description": "This container uses yt-dlp to automatically download content from Patreon creators. It runs on a schedule and saves downloaded content to a configured directory.",
+  "screenshot_link": "",
+  "category": [
+    "Downloaders"
+  ],
+  "port_map": [],
+  "architecture": [
+    "amd64",
+    "arm64"
+  ],
+  "host_network": false,
+  "memory_limit": 1024,
+  "cpu_limit": 0.5,
+  "env": [
+    {
+      "name": "TZ",
+      "description": "Timezone for container",
+      "default": "America/New_York"
+    },
+    {
+      "name": "PUID",
+      "description": "User ID for permissions",
+      "default": "1000"
+    },
+    {
+      "name": "PGID",
+      "description": "Group ID for permissions",
+      "default": "1000"
+    }
+  ],
+  "volumes": [
+    {
+      "container": "/downloads",
+      "description": "Location for downloaded Patreon content",
+      "host": "/DATA/AppData/patreon-downloader/downloads",
+      "required": true
+    },
+    {
+      "container": "/config",
+      "description": "Configuration folder with cookies.txt and config.json",
+      "host": "/DATA/AppData/patreon-downloader/config",
+      "required": true
+    }
+  ]
+}

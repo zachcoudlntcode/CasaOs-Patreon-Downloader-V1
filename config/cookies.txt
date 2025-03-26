@@ -1,0 +1,18 @@
+# Netscape HTTP Cookie File
+# http://curl.haxx.se/rfc/cookie_spec.html
+# This is a generated file!  Do not edit.
+
+.patreon.com	TRUE	/	TRUE	1776998179	patreon_device_id	d40b64ed-f83e-428f-be14-dc39e32b75e9
+.patreon.com	TRUE	/	TRUE	1777516095	patreon_location_country_code	US
+.patreon.com	TRUE	/	TRUE	1777516095	patreon_locale_code	en-US
+.patreon.com	TRUE	/	FALSE	1745030180	patreon_currency_pref	USD
+.patreon.com	TRUE	/	FALSE	1776998184	__ssid	fadc67476b7cbdb07cafcd183e84ee7
+www.patreon.com	FALSE	/	FALSE	1757990190	g_state	{"i_l":0}
+www.patreon.com	FALSE	/	TRUE	1773974191	session_id	tYz0yBkQIG_y-7INUbrqBaHNIaNrNv5HOzDfAX8WAcU
+.www.patreon.com	TRUE	/	TRUE	1777000849	patreon_locale_code	en-US
+.patreon.com	TRUE	/	FALSE	1742959950	analytics_session_id	ba9d163d-7716-44c2-9d4e-aea4c14eb394
+.www.patreon.com	TRUE	/	FALSE	1774486992	__stripe_mid	60887009-cf62-4588-b8e1-da36f1b9e14cf49910
+.patreon.com	TRUE	/	FALSE	1777513831	_ga	GA1.1.2097897768.1742950931
+.patreon.com	TRUE	/	FALSE	1777510976	_ga_STGTEMVVGN	GS1.1.1742950931.1.1.1742950975.16.0.0
+.patreon.com	TRUE	/	FALSE	1777514361	_ga_JF55G82FNT	GS1.1.1742953720.1.1.1742954361.0.0.0
+.patreon.com	TRUE	/	TRUE	1742959948	__cf_bm	sFEZMpkqajOSk3CmXDP5htaNZnxXYgkRBUXmSXBOjvc-1742958150-1.0.1.1-YAFPcepXk43yq_HEqjGKy28fbhj3suUSyZ9B6vP9baO3009wZweH1ZzE3qM_kTSZO9BbVexrqjjxu3e3v1pS_A8Bn60ytni7svRddDP4rGbt4NSHE8_pUV22iQf0a0Os

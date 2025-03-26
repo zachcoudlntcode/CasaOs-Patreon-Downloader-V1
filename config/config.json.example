@@ -1,0 +1,13 @@
+{
+  "creators": [
+    {
+      "name": "creatorname1",
+      "days_back": 30,
+      "ytdlp_args": "--verbose"
+    },
+    {
+      "name": "creatorname2",
+      "days_back": 60
+    }
+  ]
+}
