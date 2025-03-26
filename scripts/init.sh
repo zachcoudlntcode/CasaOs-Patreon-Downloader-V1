@@ -7,6 +7,10 @@ PGID=${PGID:-1000}
 
 echo "Initializing container with PUID: $PUID, PGID: $PGID"
 
+# Update yt-dlp to ensure compatibility with latest features
+echo "Updating yt-dlp to latest version..."
+pip install -U yt-dlp
+
 # Create the user if it doesn't exist with specified PUID/PGID
 groupadd -g $PGID appuser || echo "Group with ID $PGID already exists"
 useradd -u $PUID -g $PGID -d /config -s /bin/bash -M appuser || echo "User with ID $PUID already exists"

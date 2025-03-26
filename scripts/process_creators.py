@@ -235,6 +235,17 @@ def attempt_alternative_download(creator, cookies_file, download_dir):
         logger.error(f"Error during alternative download attempt: {str(e)}")
         return False
 
+def get_ytdlp_version():
+    """Get the installed version of yt-dlp"""
+    try:
+        result = subprocess.run(['yt-dlp', '--version'], capture_output=True, text=True, check=True)
+        version = result.stdout.strip()
+        logger.info(f"Using yt-dlp version: {version}")
+        return version
+    except Exception as e:
+        logger.warning(f"Could not determine yt-dlp version: {str(e)}")
+        return "unknown"
+
 def download_creator(creator, archive_file, cookies_file, download_dir):
     """Download content from a specific creator"""
     
@@ -245,6 +256,9 @@ def download_creator(creator, archive_file, cookies_file, download_dir):
     date_after = (datetime.datetime.now() - datetime.timedelta(days=days_back)).strftime("%Y%m%d")
     
     logger.info(f"Processing creator: {creator['name']} (looking back {days_back} days)")
+    
+    # Check yt-dlp version to determine which options are supported
+    ytdlp_version = get_ytdlp_version()
     
     # Modify yt-dlp command to better handle Patreon videos
     cmd = [
@@ -259,18 +273,22 @@ def download_creator(creator, archive_file, cookies_file, download_dir):
         '--restrict-filenames',
         '--progress',               # Show download progress
         '--newline',                # Each progress line on new line for better log readability
-        '--force-progress',         # Force progress display even when not on a TTY
+        # Removed '--force-progress' because it's not supported in all versions
         '--verbose',                # Add verbose output for better error diagnostics
-        '--extract-audio', 'False', # Don't extract audio only
         '--format', 'best',         # Get best quality available
         '--merge-output-format', 'mp4', # Try to merge formats to mp4
-        '--add-header', 'Referer:https://www.patreon.com/', # Add referer header for authentication
+        '--add-header', f'Referer:https://www.patreon.com/', # Add referer header for authentication
         '--ignore-errors',          # Continue on download errors
         '--geo-bypass',             # Try to bypass geo-restrictions
         '--no-overwrites',          # Don't overwrite files
         '--no-playlist',            # Treat as single post, not playlist
         creator_url
     ]
+    
+    # These options may not be supported in older versions
+    # Only add --extract-audio if syntax is correct for the installed version
+    if ytdlp_version != "unknown" and not ytdlp_version.startswith("2021"):
+        cmd.extend(['--no-extract-audio'])  # Modern way to prevent audio extraction
     
     # Add any custom yt-dlp arguments if specified
     if 'ytdlp_args' in creator:
