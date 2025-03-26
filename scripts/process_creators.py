@@ -273,7 +273,6 @@ def download_creator(creator, archive_file, cookies_file, download_dir):
         '--restrict-filenames',
         '--progress',               # Show download progress
         '--newline',                # Each progress line on new line for better log readability
-        # Removed '--force-progress' because it's not supported in all versions
         '--verbose',                # Add verbose output for better error diagnostics
         '--format', 'best',         # Get best quality available
         '--merge-output-format', 'mp4', # Try to merge formats to mp4
@@ -285,10 +284,9 @@ def download_creator(creator, archive_file, cookies_file, download_dir):
         creator_url
     ]
     
-    # These options may not be supported in older versions
-    # Only add --extract-audio if syntax is correct for the installed version
-    if ytdlp_version != "unknown" and not ytdlp_version.startswith("2021"):
-        cmd.extend(['--no-extract-audio'])  # Modern way to prevent audio extraction
+    # Remove problematic extract-audio option - by default yt-dlp will NOT extract audio only
+    # if ytdlp_version != "unknown" and not ytdlp_version.startswith("2021"):
+    #     cmd.extend(['--no-extract-audio'])  # This option is not supported
     
     # Add any custom yt-dlp arguments if specified
     if 'ytdlp_args' in creator:
