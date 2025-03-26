@@ -141,6 +141,30 @@ When installed in CasaOS, your files will be organized as follows:
 
 ## Advanced Options
 
+### Video Quality Selection
+
+The downloader is configured to get the highest quality videos possible by:
+- Using `bestvideo+bestaudio/best` format selection to get separate video and audio streams when available
+- Merging them into a single MP4 file for maximum compatibility
+
+If you have issues with downloads or specific format requirements, you can customize this behavior by adding format selection options to specific creators in your config.json:
+
+```json
+{
+  "creators": [
+    {
+      "name": "creatorname",
+      "ytdlp_args": "-f best"
+    }
+  ]
+}
+```
+
+Options for format selection:
+- `bestvideo+bestaudio/best` (default): Best quality, might require post-processing
+- `best`: Simpler, faster downloads but might not be highest quality
+- `bestvideo[height<=1080]+bestaudio/best`: Limit video height to 1080p
+
 ### Customizing the Schedule
 
 Edit the `crontab` file to change how often content is checked. The default is every 6 hours.

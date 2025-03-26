@@ -299,7 +299,8 @@ def download_creator(creator, archive_file, cookies_file, download_dir):
         '--progress',               # Show download progress
         '--newline',                # Each progress line on new line for better log readability
         '--verbose',                # Add verbose output for better error diagnostics
-        '--format', 'best',         # Get best quality available
+        # Use better format selection instead of just 'best'
+        '-f', 'bestvideo+bestaudio/best', # Try to get best video+audio separately and merge, fall back to best combined format
         '--merge-output-format', 'mp4', # Try to merge formats to mp4
         '--add-header', f'Referer:https://www.patreon.com/', # Add referer header for authentication
         '--ignore-errors',          # Continue on download errors
