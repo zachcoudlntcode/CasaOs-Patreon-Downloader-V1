@@ -5,8 +5,8 @@ services:
     build: .
     container_name: patreon-downloader
     volumes:
-      - ./downloads:/downloads
-      - ./config:/config
+      - /DATA/AppData/patreon-downloader/downloads:/downloads
+      - /DATA/AppData/patreon-downloader/config:/config
     environment:
       - TZ=America/New_York
       - PYTHONUNBUFFERED=1  # Ensure Python output is unbuffered for better logging
