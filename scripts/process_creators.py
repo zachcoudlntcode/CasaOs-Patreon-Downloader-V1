@@ -198,7 +198,6 @@ def download_creator(creator, archive_file, cookies_file, download_dir):
         '--restrict-filenames',
         '--progress',               # Show download progress
         '--newline',                # Each progress line on new line for better log readability
-        '--no-progress-template',   # Don't use custom progress template to avoid issues
         '--force-progress',         # Force progress display even when not on a TTY
         '--verbose',                # Add verbose output for better error diagnostics
         creator_url
