@@ -57,13 +57,15 @@ docker-compose up -d
 ### 3. How It Works
 
 - The container will immediately check for new content when started
-- A scheduled cron job will check for new content every 6 hours
-- Downloaded content is saved to the `downloads` directory, organized by creator name
+- A scheduled cron job will check for new content every 3 hours
+- Each run checks only the 10 most recent posts from each creator
+- Downloaded content is saved to the `downloads` directory, organized by creator name and video title
 - Already downloaded files are tracked in an archive to avoid duplicates
 - Video files are automatically cleaned up:
-  - Filenames are simplified (IDs are removed)
+  - Each video gets its own dedicated folder with a clean title
   - Metadata is added from descriptions
-  - Extra files (thumbnails, descriptions, etc.) are removed
+  - Thumbnails are preserved alongside videos
+  - Extra files (JSON, description) are removed
 
 ### 4. Logs
 

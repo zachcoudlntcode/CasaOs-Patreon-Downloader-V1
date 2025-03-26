@@ -100,12 +100,25 @@ def add_metadata_to_video(video_file, info_json_file, description_file):
             os.remove(f'{video_file}.temp')
         return False
 
+def sanitize_folder_name(name):
+    """Create a clean folder name with no special characters"""
+    # Remove special characters and replace with spaces
+    cleaned = re.sub(r'[^\w\s-]', ' ', name)
+    # Replace multiple spaces with single space
+    cleaned = re.sub(r'\s+', ' ', cleaned)
+    # Trim spaces at beginning and end
+    cleaned = cleaned.strip()
+    # Limit length to avoid path issues
+    if len(cleaned) > 80:
+        cleaned = cleaned[:77] + '...'
+    return cleaned
+
 def clean_up_files(download_dir, creator_name):
     """
     Clean up downloaded files:
-    1. Rename video files to remove ID
+    1. Create a dedicated folder for each video
     2. Add metadata from info files
-    3. Remove unnecessary files (JSON, description, thumbnails)
+    3. Keep thumbnails but remove other auxiliary files
     """
     creator_dir = os.path.join(download_dir, creator_name)
     logger.info(f"Cleaning up files in {creator_dir}")
@@ -136,6 +149,7 @@ def clean_up_files(download_dir, creator_name):
         video_file = None
         info_json_file = None
         description_file = None
+        thumbnail_file = None
         other_files = []
         
         # Identify different file types
@@ -146,27 +160,38 @@ def clean_up_files(download_dir, creator_name):
                 info_json_file = file_path
             elif ext.lower() == '.description':
                 description_file = file_path
+            elif ext.lower() in ['.jpg', '.jpeg', '.png', '.webp']:
+                thumbnail_file = file_path
             else:
                 other_files.append(file_path)
         
         # Only proceed if we have a video file
         if video_file:
-            # Create clean filename
-            clean_name = clean_filename(base_name)
+            # Create clean folder name from video title
+            clean_title = sanitize_folder_name(base_name)
+            video_folder = os.path.join(creator_dir, clean_title)
+            
+            # Create folder if it doesn't exist
+            os.makedirs(video_folder, exist_ok=True)
+            
+            # Get video extension
             video_ext = os.path.splitext(video_file)[1]
-            new_video_path = os.path.join(creator_dir, f"{clean_name}{video_ext}")
+            new_video_path = os.path.join(video_folder, f"video{video_ext}")
             
             # Add metadata if we have the necessary files
             if info_json_file:
                 add_metadata_to_video(video_file, info_json_file, description_file)
             
-            # Rename the video file if the clean name is different
-            if video_file != new_video_path:
-                logger.info(f"Renaming {os.path.basename(video_file)} to {os.path.basename(new_video_path)}")
-                # If destination exists, remove it first
-                if os.path.exists(new_video_path):
-                    os.remove(new_video_path)
-                os.rename(video_file, new_video_path)
+            # Move the video file to its new location
+            logger.info(f"Moving video to {new_video_path}")
+            shutil.move(video_file, new_video_path)
+            
+            # Move the thumbnail file if we have one
+            if thumbnail_file:
+                thumb_ext = os.path.splitext(thumbnail_file)[1]
+                new_thumb_path = os.path.join(video_folder, f"thumbnail{thumb_ext}")
+                logger.info(f"Moving thumbnail to {new_thumb_path}")
+                shutil.move(thumbnail_file, new_thumb_path)
             
             # Delete other files
             for file_to_delete in [info_json_file, description_file] + other_files:
@@ -281,6 +306,7 @@ def download_creator(creator, archive_file, cookies_file, download_dir):
         '--geo-bypass',             # Try to bypass geo-restrictions
         '--no-overwrites',          # Don't overwrite files
         '--no-playlist',            # Treat as single post, not playlist
+        '--playlist-end', '10',     # Limit to the 10 most recent posts
         creator_url
     ]
     

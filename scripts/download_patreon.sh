@@ -43,6 +43,7 @@ echo -e "\nDownload directory usage:" | tee -a "$LOG_FILE"
 du -sh /downloads/* | tee -a "$LOG_FILE"
 
 echo "=== Completed Patreon download at $(date) ==="
+echo "Next scheduled check will be in 3 hours" | tee -a "$LOG_FILE"
 
 # Rotate logs if there are more than 20
 find "$LOG_DIR" -type f -name "patreon_download_*.log" | sort | head -n -20 | xargs -r rm
