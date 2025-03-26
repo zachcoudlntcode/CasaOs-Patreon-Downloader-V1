@@ -102,15 +102,28 @@ def add_metadata_to_video(video_file, info_json_file, description_file):
 
 def sanitize_folder_name(name):
     """Create a clean folder name with no special characters"""
+    # First, replace underscores with spaces
+    cleaned = name.replace('_', ' ')
+    
     # Remove special characters and replace with spaces
-    cleaned = re.sub(r'[^\w\s-]', ' ', name)
+    cleaned = re.sub(r'[^\w\s-]', ' ', cleaned)
+    
     # Replace multiple spaces with single space
     cleaned = re.sub(r'\s+', ' ', cleaned)
+    
     # Trim spaces at beginning and end
     cleaned = cleaned.strip()
+    
+    # Format titles nicely - capitalize first letter of each word
+    cleaned = ' '.join(word.capitalize() for word in cleaned.split())
+    
     # Limit length to avoid path issues
     if len(cleaned) > 80:
         cleaned = cleaned[:77] + '...'
+    
+    # Don't convert spaces to underscores anymore
+    # Keep the clean name with spaces
+    
     return cleaned
 
 def clean_up_files(download_dir, creator_name):
