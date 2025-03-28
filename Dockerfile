@@ -28,6 +28,10 @@ COPY crontab /tmp/crontab
 COPY --chown=root:root scripts/init.sh /init.sh
 RUN chmod +x /init.sh
 
+# Make sure cron has right permissions and better logging
+RUN touch /var/log/cron.log && \
+    chmod 0644 /tmp/crontab
+
 # Volume definitions
 VOLUME /downloads
 VOLUME /config

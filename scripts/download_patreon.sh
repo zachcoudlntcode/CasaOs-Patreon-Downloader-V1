@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Set PATH to ensure commands can be found
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
 echo "=== Starting Patreon download at $(date) ==="
 
 # Load config
@@ -30,6 +33,8 @@ DETAILED_LOG="/downloads/detailed_download.log"
 echo "Download started at $(date)" | tee -a "$LOG_FILE"
 echo "Log file: $LOG_FILE" | tee -a "$LOG_FILE"
 echo "Detailed log: $DETAILED_LOG" | tee -a "$LOG_FILE"
+echo "Running as user: $(whoami)" | tee -a "$LOG_FILE"
+echo "Current directory: $(pwd)" | tee -a "$LOG_FILE"
 
 # Process each creator from config - redirect to both console and log file
 python /scripts/process_creators.py 2>&1 | tee -a "$LOG_FILE"
